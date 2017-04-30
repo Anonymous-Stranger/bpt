@@ -87,9 +87,7 @@
 /* Defines a key. If this had been done in the first place,
  * this code would be so much easier to write.
  */
-typedef struct bpt_key {
-  int key;
-} bpt_key;
+typedef int bpt_key;
 
 /* Type representing the record
  * to which a given key refers.
@@ -175,8 +173,6 @@ bool verbose_output = false;
 // FUNCTION PROTOTYPES.
 
 // Key Handling
-bpt_key to_key(int k);
-int from_key(bpt_key k);
 int diff(bpt_key a, bpt_key b);
 int absdiff(bpt_key a, bpt_key b);
 int compare(bpt_key a, bpt_key b);
@@ -243,18 +239,8 @@ node * delete( node * root, bpt_key key );
 
 // KEY HANDLING
 
-bpt_key to_key(int k) {
-  bpt_key key;
-  key.key = k;
-  return key;
-}
-
-int from_key(bpt_key k) {
-  return k.key;
-}
-
 int diff(bpt_key a, bpt_key b) {
-  return b.key - a.key;
+  return b - a;
 }
 
 int absdiff(bpt_key a, bpt_key b) {
@@ -263,7 +249,7 @@ int absdiff(bpt_key a, bpt_key b) {
 }
 
 int compare(bpt_key a, bpt_key b) {
-  return (a.key < b.key) - (b.key < a.key);
+  return (a < b) - (b < a);
 }
 
 bool match(bpt_key a, bpt_key b) {
@@ -421,7 +407,7 @@ void print_leaves( node * root ) {
 		for (i = 0; i < c->num_keys; i++) {
 			if (verbose_output)
 				printf("%lx ", (unsigned long)c->pointers[i]);
-			printf("%d ", from_key(c->keys[i]));
+			printf("%d ", (int) (c->keys[i]));
 		}
 		if (verbose_output)
 			printf("%lx ", (unsigned long)c->pointers[order - 1]);
@@ -501,7 +487,7 @@ void print_tree( node * root ) {
 		for (i = 0; i < n->num_keys; i++) {
 			if (verbose_output)
 				printf("%lx ", (unsigned long)n->pointers[i]);
-			printf("%d ", from_key(n->keys[i]));
+			printf("%d ", (int) (n->keys[i]));
 		}
 		if (!n->is_leaf)
 			for (i = 0; i <= n->num_keys; i++)
@@ -524,10 +510,10 @@ void print_tree( node * root ) {
 void find_and_print(node * root, bpt_key key, bool verbose) {
 	record * r = find(root, key, verbose);
 	if (r == NULL)
-		printf("Record not found under key %d.\n", from_key(key));
+		printf("Record not found under key %d.\n", (int) (key));
 	else
 		printf("Record at %lx -- key %d, value %d.\n",
-				(unsigned long)r, from_key(key), r->value);
+				(unsigned long)r, (int) (key), r->value);
 }
 
 
@@ -547,7 +533,7 @@ void find_and_print_range( node * root, bpt_key key_start, bpt_key key_end,
 	else {
 		for (i = 0; i < num_found; i++)
 			printf("Key: %d   Location: %lx  Value: %d\n",
-					from_key(returned_keys[i]),
+					(int) (returned_keys[i]),
 					(unsigned long)returned_pointers[i],
 					((record *)
 					 returned_pointers[i])->value);
@@ -562,7 +548,6 @@ void find_and_print_range( node * root, bpt_key key_start, bpt_key key_end,
  */
 int find_range( node * root, bpt_key key_start, bpt_key key_end, bool verbose,
 		bpt_key returned_keys[], void * returned_pointers[]) {
-  printf("[LOG] %d -> %d\n", from_key(key_start), from_key(key_end));
 	int i, num_found;
 	num_found = 0;
 	node * n = find_leaf(root, key_start, verbose);
@@ -599,8 +584,8 @@ node * find_leaf( node * root, bpt_key key, bool verbose ) {
 		if (verbose) {
 			printf("[");
 			for (i = 0; i < c->num_keys - 1; i++)
-				printf("%d ", from_key(c->keys[i]));
-			printf("%d] ", from_key(c->keys[i]));
+				printf("%d ", (int) (c->keys[i]));
+			printf("%d] ", (int) (c->keys[i]));
 		}
 		i = 0;
 		while (i < c->num_keys && !comes_before(key, c->keys[i])) i++;
@@ -611,8 +596,8 @@ node * find_leaf( node * root, bpt_key key, bool verbose ) {
 	if (verbose) {
 		printf("Leaf [");
 		for (i = 0; i < c->num_keys - 1; i++)
-			printf("%d ", from_key(c->keys[i]));
-		printf("%d] ->\n", from_key(c->keys[i]));
+			printf("%d ", (int) (c->keys[i]));
+		printf("%d] ->\n", (int) (c->keys[i]));
 	}
 	return c;
 }
@@ -1461,7 +1446,7 @@ int main( int argc, char ** argv ) {
 		}
 		while (!feof(fp)) {
 			fscanf(fp, "%d\n", &new_val);
-			root = insert(root, to_key(new_val), new_val);
+			root = insert(root, (bpt_key) (new_val), new_val);
 		}
 		fclose(fp);
 		print_tree(root);
@@ -1471,22 +1456,22 @@ int main( int argc, char ** argv ) {
 	while (scanf("%c", &instruction) != EOF) {
 		switch (instruction) {
 		case 'd':
-			scanf("%d", &input.key);
+			scanf("%d", &input);
 			root = delete(root, input);
 			print_tree(root);
 			break;
 		case 'i':
 			scanf("%d", &new_val);
-			root = insert(root, to_key(new_val), new_val);
+			root = insert(root, (bpt_key) (new_val), new_val);
 			print_tree(root);
 			break;
 		case 'f':
 		case 'p':
-			scanf("%d", &input.key);
+			scanf("%d", &input);
 			find_and_print(root, input, instruction == 'p');
 			break;
 		case 'r':
-			scanf("%d %d", &input.key, &range2.key);
+			scanf("%d %d", &input, &range2);
 			if (comes_after(input, range2)) {
 				bpt_key tmp = range2;
 				range2 = input;
