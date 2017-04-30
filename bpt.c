@@ -34,10 +34,11 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 
  *  Author:  Amittai Aviram
+    Modified by: Akash Gaonkar (Switched sorting direction)
  *    http://www.amittai.com
  *    amittai.aviram@gmail.edu or afa13@columbia.edu
  *  Original Date:  26 June 2010
- *  Last modified: 17 June 2016
+ *  Last modified: 29 April 2017
  *
  *  This implementation demonstrates the B+ tree data structure
  *  for educational purposes, includin insertion, deletion, search, and display
@@ -253,7 +254,7 @@ int from_key(bpt_key k) {
 }
 
 int diff(bpt_key a, bpt_key b) {
-  return a.key - b.key;
+  return b.key - a.key;
 }
 
 int absdiff(bpt_key a, bpt_key b) {
@@ -262,7 +263,7 @@ int absdiff(bpt_key a, bpt_key b) {
 }
 
 int compare(bpt_key a, bpt_key b) {
-  return (a.key > b.key) - (b.key > a.key);
+  return (a.key < b.key) - (b.key < a.key);
 }
 
 bool match(bpt_key a, bpt_key b) {
@@ -561,9 +562,10 @@ void find_and_print_range( node * root, bpt_key key_start, bpt_key key_end,
  */
 int find_range( node * root, bpt_key key_start, bpt_key key_end, bool verbose,
 		bpt_key returned_keys[], void * returned_pointers[]) {
+  printf("[LOG] %d -> %d\n", from_key(key_start), from_key(key_end));
 	int i, num_found;
 	num_found = 0;
-	node * n = find_leaf( root, key_start, verbose );
+	node * n = find_leaf(root, key_start, verbose);
 	if (n == NULL) return 0;
 	for (i = 0; i < n->num_keys && comes_before(n->keys[i], key_start); i++) ;
 	if (i == n->num_keys) return 0;
@@ -1429,7 +1431,8 @@ int main( int argc, char ** argv ) {
 	char * input_file;
 	FILE * fp;
 	node * root;
-	int input, range2;
+	bpt_key input, range2;
+  int new_val;
 	char instruction;
 	char license_part;
 
@@ -1457,8 +1460,8 @@ int main( int argc, char ** argv ) {
 			exit(EXIT_FAILURE);
 		}
 		while (!feof(fp)) {
-			fscanf(fp, "%d\n", &input);
-			root = insert(root, to_key(input), input);
+			fscanf(fp, "%d\n", &new_val);
+			root = insert(root, to_key(new_val), new_val);
 		}
 		fclose(fp);
 		print_tree(root);
@@ -1468,29 +1471,28 @@ int main( int argc, char ** argv ) {
 	while (scanf("%c", &instruction) != EOF) {
 		switch (instruction) {
 		case 'd':
-			scanf("%d", &input);
-			root = delete(root, to_key(input));
+			scanf("%d", &input.key);
+			root = delete(root, input);
 			print_tree(root);
 			break;
 		case 'i':
-			scanf("%d", &input);
-			root = insert(root, to_key(input), input);
+			scanf("%d", &new_val);
+			root = insert(root, to_key(new_val), new_val);
 			print_tree(root);
 			break;
 		case 'f':
 		case 'p':
-			scanf("%d", &input);
-			find_and_print(root, to_key(input), instruction == 'p');
+			scanf("%d", &input.key);
+			find_and_print(root, input, instruction == 'p');
 			break;
 		case 'r':
-			scanf("%d %d", &input, &range2);
-			if (input > range2) {
-				int tmp = range2;
+			scanf("%d %d", &input.key, &range2.key);
+			if (comes_after(input, range2)) {
+				bpt_key tmp = range2;
 				range2 = input;
 				input = tmp;
 			}
-			find_and_print_range(
-        root, to_key(input), to_key(range2), instruction == 'p');
+			find_and_print_range(root, input, range2, instruction == 'p');
 			break;
 		case 'l':
 			print_leaves(root);
